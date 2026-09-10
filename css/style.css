@@ -384,6 +384,14 @@ body {
   color: var(--muted);
 }
 
+.pillow-options {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.pillow-options .group-head { margin-bottom: 12px; }
+
 /* подвал */
 
 .panel-foot {

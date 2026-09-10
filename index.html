@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=1">
+<link rel="stylesheet" href="css/style.css?v=2">
 <script type="importmap">
 {
   "imports": {
@@ -91,6 +91,14 @@
           <span class="check-text">Декоративная подушка</span>
           <span class="check-price">+2 900 ₽</span>
         </label>
+
+        <div id="pillow-options" class="pillow-options" hidden>
+          <div class="group-head">
+            <h2>Ткань подушки</h2>
+            <span id="v-pillow" class="group-value">Терракота</span>
+          </div>
+          <div id="pillow-fabrics" class="swatches"></div>
+        </div>
       </section>
 
     </div>
@@ -138,9 +146,11 @@ const FRAMES = [
   { id: 'brass',  name: 'Латунь',        hex: '#d4af37', metalness: 0.88, roughness: 0.30, price: 8900 },
 ];
 
+// XL меняет пропорции, а не масштаб целиком: кресло становится заметно шире.
+// Равномерное увеличение в пустой сцене неотличимо от приближения камеры.
 const SIZES = [
-  { id: 'std', name: 'Стандарт', dims: 'Ш 78 × Г 82 × В 74 см', scale: 1.00, price: 0 },
-  { id: 'xl',  name: 'XL',       dims: 'Ш 92 × Г 88 × В 78 см', scale: 1.14, price: 7400 },
+  { id: 'std', name: 'Стандарт', dims: 'Ш 78 × Г 82 × В 74 см', scale: { x: 1.00, y: 1.00, z: 1.00 }, price: 0 },
+  { id: 'xl',  name: 'XL',       dims: 'Ш 92 × Г 88 × В 78 см', scale: { x: 1.18, y: 1.05, z: 1.07 }, price: 7400 },
 ];
 
 const PILLOW = { id: 'pillow', name: 'Декоративная подушка', price: 2900 };
@@ -273,15 +283,16 @@ function buildChair() {
   }
 
   // --- декоративная подушка ------------------------------------------------
+  // Подушка — ребёнок спинки: наследует её наклон и всегда стоит правильно,
+  // как прислонённая, а не лежит плашмя посреди сиденья.
   const pillow = shadowed(new THREE.Mesh(
-    new RoundedBoxGeometry(0.36, 0.125, 0.36, 7, 0.055),
+    new RoundedBoxGeometry(0.34, 0.115, 0.34, 7, 0.052),
     pillowMat
   ));
-  // лежит на подушке сиденья, слегка развёрнута — как на съёмке в каталоге
-  pillow.position.set(0.09, SEAT_TOP + 0.050, -0.03);
-  pillow.rotation.set(-0.09, 0.30, 0.07);
+  pillow.position.set(0.15, 0.21, 0.13);
+  pillow.rotation.set(Math.PI / 2 - 0.30, 0.12, 0.14);
   pillow.visible = false;
-  root.add(pillow);
+  backPivot.add(pillow);
 
   return { root, fabric, frame, pillowMat, pillow, seat, back, legs, SEAT_TOP };
 }
@@ -358,7 +369,7 @@ const chair = buildChair();
 scene.add(chair.root);
 
 // --------------------------------------------------------------- состояние
-const state = { fabric: FABRICS[0], frame: FRAMES[0], size: SIZES[0], pillow: false };
+const state = { fabric: FABRICS[0], frame: FRAMES[0], size: SIZES[0], pillow: false, pillowFabric: FABRICS[4] };
 
 const target = {
   fabric: new THREE.Color(FABRICS[0].hex),
@@ -366,7 +377,7 @@ const target = {
   pillow: new THREE.Color(FABRICS[4].hex),
   metalness: FRAMES[0].metalness,
   roughness: FRAMES[0].roughness,
-  scale: SIZES[0].scale,
+  scale: new THREE.Vector3(1, 1, 1),
   opacity: 0,
   price: totalPrice(state),
 };
@@ -388,6 +399,8 @@ const els = {
   dims: document.getElementById('dims'),
   lead: document.getElementById('lead'),
   toast: document.getElementById('toast'),
+  pillowFabrics: document.getElementById('pillow-fabrics'),
+  vPillow: document.getElementById('v-pillow'),
 };
 
 function makeSwatch(item, kind, isActive) {
@@ -405,10 +418,10 @@ function makeSwatch(item, kind, isActive) {
   return b;
 }
 
-function buildSwatchRow(container, items, kind, onPick) {
+function buildSwatchRow(container, items, kind, onPick, activeIndex = 0) {
   container.innerHTML = '';
   items.forEach((item, i) => {
-    const b = makeSwatch(item, kind, i === 0);
+    const b = makeSwatch(item, kind, i === activeIndex);
     b.addEventListener('click', () => {
       container.querySelectorAll('.swatch').forEach(s => s.classList.remove('is-active'));
       b.classList.add('is-active');
@@ -443,7 +456,7 @@ SIZES.forEach((item, i) => {
     els.sizes.querySelectorAll('.pill').forEach(p => p.classList.remove('is-active'));
     b.classList.add('is-active');
     state.size = item;
-    target.scale = item.scale;
+    target.scale.set(item.scale.x, item.scale.y, item.scale.z);
     els.vSize.textContent = item.name;
     els.dims.textContent = item.dims;
     refresh();
@@ -451,18 +464,24 @@ SIZES.forEach((item, i) => {
   els.sizes.appendChild(b);
 });
 
+const pillowOptions = document.getElementById('pillow-options');
+
+buildSwatchRow(els.pillowFabrics, FABRICS, 'fabric', item => {
+  state.pillowFabric = item;
+  target.pillow.set(item.hex);
+  els.vPillow.textContent = item.name;
+}, 4);
+
 els.pillow.addEventListener('change', () => {
   state.pillow = els.pillow.checked;
   target.opacity = state.pillow ? 1 : 0;
   if (state.pillow) chair.pillow.visible = true;
+  pillowOptions.hidden = !state.pillow;
   refresh();
 });
 
 function refresh() {
   target.price = totalPrice(state);
-  // подушка всегда контрастирует с основной тканью
-  const contrast = FABRICS.find(f => f.id !== state.fabric.id && f.price >= 2400) || FABRICS[4];
-  target.pillow.set(contrast.hex);
 }
 
 document.getElementById('reset').addEventListener('click', () => {
@@ -508,7 +527,6 @@ function resize() {
 addEventListener('resize', resize);
 resize();
 
-const tmpScale = new THREE.Vector3();
 const clock = new THREE.Clock();
 
 // Сглаживание привязано ко времени, а не к кадрам: переход длится одинаково
@@ -533,8 +551,7 @@ function tick() {
   if (chair.pillowMat.opacity < 0.01 && target.opacity === 0) chair.pillow.visible = false;
   chair.pillow.scale.setScalar(0.62 + chair.pillowMat.opacity * 0.38);
 
-  tmpScale.setScalar(target.scale);
-  chair.root.scale.lerp(tmpScale, smooth(8, dt));
+  chair.root.scale.lerp(target.scale, smooth(8, dt));
 
   if (Math.abs(shownPrice - target.price) > 1) {
     shownPrice += (target.price - shownPrice) * smooth(10, dt);
