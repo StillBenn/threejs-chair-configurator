@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Кресло NORD — 3D-конфигуратор</title>
+<meta name="description" content="Интерактивный 3D-конфигуратор мебели на Three.js: выбор ткани, каркаса и размера с пересчётом цены в реальном времени.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=1">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<div class="app">
+
+  <main id="stage" class="stage">
+    <canvas id="scene"></canvas>
+
+    <div class="stage-top">
+      <span class="badge">Демо-проект</span>
+      <span class="hint">Зажмите и потяните, чтобы повернуть</span>
+    </div>
+
+    <div class="stage-bottom">
+      <p id="dims" class="dims">Ш 78 × Г 82 × В 74 см</p>
+      <div class="tools">
+        <button type="button" id="reset" class="tool" title="Сбросить вид">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
+          <span>Сбросить вид</span>
+        </button>
+        <button type="button" id="snapshot" class="tool" title="Сохранить изображение">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.4"/></svg>
+          <span>Снимок</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </main>
+
+  <aside class="panel">
+
+    <header class="panel-head">
+      <p class="eyebrow">3D-конфигуратор товара</p>
+      <h1>Кресло <em>NORD</em></h1>
+      <p class="lede">Соберите кресло под свой интерьер — модель и цена меняются сразу.</p>
+    </header>
+
+    <div class="panel-body">
+
+      <section class="group">
+        <div class="group-head">
+          <h2>Ткань</h2>
+          <span id="v-fabric" class="group-value">Песочный</span>
+        </div>
+        <div id="fabrics" class="swatches"></div>
+      </section>
+
+      <section class="group">
+        <div class="group-head">
+          <h2>Каркас</h2>
+          <span id="v-frame" class="group-value">Дуб</span>
+        </div>
+        <div id="frames" class="swatches"></div>
+      </section>
+
+      <section class="group">
+        <div class="group-head">
+          <h2>Размер</h2>
+          <span id="v-size" class="group-value">Стандарт</span>
+        </div>
+        <div id="sizes" class="pills"></div>
+      </section>
+
+      <section class="group">
+        <div class="group-head">
+          <h2>Дополнительно</h2>
+        </div>
+        <label class="check">
+          <input type="checkbox" id="pillow">
+          <span class="check-box" aria-hidden="true"></span>
+          <span class="check-text">Декоративная подушка</span>
+          <span class="check-price">+2 900 ₽</span>
+        </label>
+      </section>
+
+    </div>
+
+    <footer class="panel-foot">
+      <div class="price">
+        <span class="price-label">Итого</span>
+        <strong id="price">42 900 ₽</strong>
+        <span id="lead" class="price-note">Срок изготовления 14 дней</span>
+      </div>
+      <button type="button" id="order" class="cta">Заказать</button>
+    </footer>
+
+  </aside>
+
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+/* ══════════════════════════════════════════════════════════════════════════
+   КАТАЛОГ И ЦЕНЫ — правится здесь
+   ══════════════════════════════════════════════════════════════════════════ */
+// Каталог опций и цены. Меняется только этот файл — сцена подстроится сама.
+
+const PRICE_BASE = 42900;
+const LEAD_TIME = 14; // дней
+
+const FABRICS = [
+  { id: 'sand',       name: 'Песочный',   hex: '#d8c3a5', price: 0 },
+  { id: 'cream',      name: 'Сливочный',  hex: '#e9e2d6', price: 0 },
+  { id: 'graphite',   name: 'Графит',     hex: '#3c4045', price: 2400 },
+  { id: 'olive',      name: 'Олива',      hex: '#5f6b4a', price: 2400 },
+  { id: 'terracotta', name: 'Терракота',  hex: '#a8553c', price: 3200 },
+  { id: 'indigo',     name: 'Индиго',     hex: '#2f3f5c', price: 3200 },
+];
+
+const FRAMES = [
+  { id: 'oak',    name: 'Дуб',           hex: '#b98b52', metalness: 0.00, roughness: 0.58, price: 0 },
+  { id: 'walnut', name: 'Орех',          hex: '#5b3a24', metalness: 0.00, roughness: 0.50, price: 3600 },
+  { id: 'black',  name: 'Чёрный металл', hex: '#2a2c30', metalness: 0.70, roughness: 0.40, price: 5200 },
+  { id: 'brass',  name: 'Латунь',        hex: '#d4af37', metalness: 0.88, roughness: 0.30, price: 8900 },
+];
+
+const SIZES = [
+  { id: 'std', name: 'Стандарт', dims: 'Ш 78 × Г 82 × В 74 см', scale: 1.00, price: 0 },
+  { id: 'xl',  name: 'XL',       dims: 'Ш 92 × Г 88 × В 78 см', scale: 1.14, price: 7400 },
+];
+
+const PILLOW = { id: 'pillow', name: 'Декоративная подушка', price: 2900 };
+
+function totalPrice(state) {
+  return PRICE_BASE
+    + state.fabric.price
+    + state.frame.price
+    + state.size.price
+    + (state.pillow ? PILLOW.price : 0);
+}
+
+function formatPrice(value) {
+  return Math.round(value).toLocaleString('ru-RU') + ' ₽';
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   МОДЕЛЬ КРЕСЛА
+   ══════════════════════════════════════════════════════════════════════════ */
+// Кресло собирается процедурно: внешних 3D-файлов нет, страница грузится мгновенно.
+// Все размеры в метрах. Посадочная высота 46 см, общая высота ~78 см.
+
+const W = 0.74;         // ширина
+const D = 0.72;         // глубина
+const LEG_H = 0.30;
+const RAIL_Y = 0.315;   // царга под подушкой
+const SEAT_Y = 0.400;   // центр подушки
+const SEAT_H = 0.130;
+const SEAT_TOP = SEAT_Y + SEAT_H / 2;
+const ARM_Y = 0.625;
+
+function shadowed(mesh) {
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+function buildChair() {
+  const root = new THREE.Group();
+
+  const fabric = new THREE.MeshPhysicalMaterial({
+    color: 0xd8c3a5,
+    roughness: 0.95,
+    metalness: 0.0,
+    sheen: 0.30,
+    sheenRoughness: 0.9,
+    sheenColor: new THREE.Color(0xf4f0ea),
+    envMapIntensity: 0.42,
+  });
+
+  const frame = new THREE.MeshStandardMaterial({
+    color: 0xb98b52,
+    roughness: 0.58,
+    metalness: 0.0,
+    envMapIntensity: 1.4,
+  });
+
+  const pillowMat = new THREE.MeshPhysicalMaterial({
+    color: 0xa8553c,
+    roughness: 0.9,
+    metalness: 0.0,
+    sheen: 0.35,
+    sheenRoughness: 0.85,
+    envMapIntensity: 0.55,
+    transparent: true,
+    opacity: 0,
+  });
+
+  // --- царга: деревянное основание под подушкой ----------------------------
+  const rail = shadowed(new THREE.Mesh(
+    new RoundedBoxGeometry(W + 0.02, 0.055, D + 0.02, 4, 0.018),
+    frame
+  ));
+  rail.position.y = RAIL_Y;
+  root.add(rail);
+
+  // --- подушка сиденья -----------------------------------------------------
+  const seat = shadowed(new THREE.Mesh(
+    new RoundedBoxGeometry(W - 0.02, SEAT_H, D - 0.03, 7, 0.05),
+    fabric
+  ));
+  seat.position.y = SEAT_Y;
+  root.add(seat);
+
+  // --- спинка: утоплена в подушку, наклон ~11° -----------------------------
+  const backPivot = new THREE.Group();
+  backPivot.position.set(0, SEAT_Y - 0.02, -D / 2 + 0.10);
+  backPivot.rotation.x = -0.20;
+  const back = shadowed(new THREE.Mesh(
+    new RoundedBoxGeometry(W - 0.02, 0.42, 0.14, 7, 0.048),
+    fabric
+  ));
+  back.position.y = 0.20;
+  backPivot.add(back);
+  root.add(backPivot);
+
+  // --- подлокотники: мягкая накладка на деревянных стойках ------------------
+  const postGeo = new THREE.CylinderGeometry(0.023, 0.021, ARM_Y - RAIL_Y, 16);
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      const post = shadowed(new THREE.Mesh(postGeo, frame));
+      post.position.set(
+        sx * (W / 2 + 0.015),
+        RAIL_Y + (ARM_Y - RAIL_Y) / 2,
+        sz * (D / 2 - 0.17)
+      );
+      root.add(post);
+    }
+
+    const pad = shadowed(new THREE.Mesh(
+      new RoundedBoxGeometry(0.095, 0.085, D - 0.18, 5, 0.038),
+      fabric
+    ));
+    pad.position.set(sx * (W / 2 + 0.015), ARM_Y + 0.015, 0.01);
+    root.add(pad);
+  }
+
+  // --- ножки: конус, лёгкий развал наружу ----------------------------------
+  const legGeo = new THREE.CylinderGeometry(0.028, 0.016, LEG_H, 20);
+  const legs = [];
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      const leg = shadowed(new THREE.Mesh(legGeo, frame));
+      leg.position.set(sx * (W / 2 - 0.09), LEG_H / 2 + 0.004, sz * (D / 2 - 0.10));
+      leg.rotation.z = -sx * 0.11;
+      leg.rotation.x = sz * 0.10;
+      root.add(leg);
+      legs.push(leg);
+    }
+  }
+
+  // --- декоративная подушка ------------------------------------------------
+  const pillow = shadowed(new THREE.Mesh(
+    new RoundedBoxGeometry(0.36, 0.125, 0.36, 7, 0.055),
+    pillowMat
+  ));
+  // лежит на подушке сиденья, слегка развёрнута — как на съёмке в каталоге
+  pillow.position.set(0.09, SEAT_TOP + 0.050, -0.03);
+  pillow.rotation.set(-0.09, 0.30, 0.07);
+  pillow.visible = false;
+  root.add(pillow);
+
+  return { root, fabric, frame, pillowMat, pillow, seat, back, legs, SEAT_TOP };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   СЦЕНА, СВЕТ, УПРАВЛЕНИЕ
+   ══════════════════════════════════════════════════════════════════════════ */
+const canvas = document.getElementById('scene');
+const stage = document.getElementById('stage');
+
+// ---------------------------------------------------------------- рендерер
+const renderer = new THREE.WebGLRenderer({
+  canvas, antialias: true, alpha: true, preserveDrawingBuffer: true
+});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.92;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
+camera.position.set(1.58, 1.05, 2.05);
+
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0, 0.48, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.07;
+controls.enablePan = false;
+controls.minDistance = 1.5;
+controls.maxDistance = 4.2;
+controls.minPolarAngle = 0.35;
+controls.maxPolarAngle = 1.50;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.9;
+controls.addEventListener('start', () => { controls.autoRotate = false; });
+
+// ------------------------------------------------------------------- свет
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const key = new THREE.DirectionalLight(0xfffaf4, 1.65);
+key.position.set(2.6, 4.2, 2.4);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.radius = 4;
+key.shadow.bias = -0.0006;
+const shadowCam = key.shadow.camera;
+shadowCam.near = 0.5;
+shadowCam.far = 12;
+shadowCam.left = -2.2;
+shadowCam.right = 2.2;
+shadowCam.top = 2.2;
+shadowCam.bottom = -2.2;
+scene.add(key);
+
+const rim = new THREE.DirectionalLight(0xeef2ff, 0.45);
+rim.position.set(-3, 2.2, -2.4);
+scene.add(rim);
+
+// -------------------------------------------------------------------- пол
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(14, 14),
+  new THREE.ShadowMaterial({ opacity: 0.30 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// ----------------------------------------------------------------- кресло
+const chair = buildChair();
+scene.add(chair.root);
+
+// --------------------------------------------------------------- состояние
+const state = { fabric: FABRICS[0], frame: FRAMES[0], size: SIZES[0], pillow: false };
+
+const target = {
+  fabric: new THREE.Color(FABRICS[0].hex),
+  frame: new THREE.Color(FRAMES[0].hex),
+  pillow: new THREE.Color(FABRICS[4].hex),
+  metalness: FRAMES[0].metalness,
+  roughness: FRAMES[0].roughness,
+  scale: SIZES[0].scale,
+  opacity: 0,
+  price: totalPrice(state),
+};
+let shownPrice = target.price;
+
+chair.fabric.color.copy(target.fabric);
+chair.frame.color.copy(target.frame);
+
+// --------------------------------------------------------------- интерфейс
+const els = {
+  fabrics: document.getElementById('fabrics'),
+  frames: document.getElementById('frames'),
+  sizes: document.getElementById('sizes'),
+  pillow: document.getElementById('pillow'),
+  vFabric: document.getElementById('v-fabric'),
+  vFrame: document.getElementById('v-frame'),
+  vSize: document.getElementById('v-size'),
+  price: document.getElementById('price'),
+  dims: document.getElementById('dims'),
+  lead: document.getElementById('lead'),
+  toast: document.getElementById('toast'),
+};
+
+function makeSwatch(item, kind, isActive) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'swatch' + (isActive ? ' is-active' : '');
+  b.dataset.id = item.id;
+  b.setAttribute('aria-label', item.name);
+  b.title = item.price ? item.name + ' · +' + formatPrice(item.price) : item.name;
+  const dot = document.createElement('span');
+  dot.className = 'swatch-dot';
+  dot.style.background = item.hex;
+  if (kind === 'frame' && item.metalness > 0.5) dot.classList.add('is-metal');
+  b.appendChild(dot);
+  return b;
+}
+
+function buildSwatchRow(container, items, kind, onPick) {
+  container.innerHTML = '';
+  items.forEach((item, i) => {
+    const b = makeSwatch(item, kind, i === 0);
+    b.addEventListener('click', () => {
+      container.querySelectorAll('.swatch').forEach(s => s.classList.remove('is-active'));
+      b.classList.add('is-active');
+      onPick(item);
+    });
+    container.appendChild(b);
+  });
+}
+
+buildSwatchRow(els.fabrics, FABRICS, 'fabric', item => {
+  state.fabric = item;
+  target.fabric.set(item.hex);
+  els.vFabric.textContent = item.name;
+  refresh();
+});
+
+buildSwatchRow(els.frames, FRAMES, 'frame', item => {
+  state.frame = item;
+  target.frame.set(item.hex);
+  target.metalness = item.metalness;
+  target.roughness = item.roughness;
+  els.vFrame.textContent = item.name;
+  refresh();
+});
+
+SIZES.forEach((item, i) => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'pill' + (i === 0 ? ' is-active' : '');
+  b.textContent = item.name;
+  b.addEventListener('click', () => {
+    els.sizes.querySelectorAll('.pill').forEach(p => p.classList.remove('is-active'));
+    b.classList.add('is-active');
+    state.size = item;
+    target.scale = item.scale;
+    els.vSize.textContent = item.name;
+    els.dims.textContent = item.dims;
+    refresh();
+  });
+  els.sizes.appendChild(b);
+});
+
+els.pillow.addEventListener('change', () => {
+  state.pillow = els.pillow.checked;
+  target.opacity = state.pillow ? 1 : 0;
+  if (state.pillow) chair.pillow.visible = true;
+  refresh();
+});
+
+function refresh() {
+  target.price = totalPrice(state);
+  // подушка всегда контрастирует с основной тканью
+  const contrast = FABRICS.find(f => f.id !== state.fabric.id && f.price >= 2400) || FABRICS[4];
+  target.pillow.set(contrast.hex);
+}
+
+document.getElementById('reset').addEventListener('click', () => {
+  controls.autoRotate = true;
+  camera.position.set(1.58, 1.05, 2.05);
+  controls.target.set(0, 0.48, 0);
+});
+
+document.getElementById('snapshot').addEventListener('click', () => {
+  renderer.render(scene, camera);
+  const a = document.createElement('a');
+  a.download = 'kreslo-nord-' + state.fabric.id + '-' + state.frame.id + '.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+  toast('Изображение сохранено');
+});
+
+document.getElementById('order').addEventListener('click', () => {
+  toast(state.size.name + ' · ' + state.fabric.name + ' · ' + state.frame.name + ' — ' + formatPrice(target.price));
+});
+
+let toastTimer;
+function toast(text) {
+  els.toast.textContent = text;
+  els.toast.classList.add('is-on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => els.toast.classList.remove('is-on'), 2800);
+}
+
+els.lead.textContent = 'Срок изготовления ' + LEAD_TIME + ' дней';
+els.dims.textContent = SIZES[0].dims;
+els.price.textContent = formatPrice(shownPrice);
+
+// ------------------------------------------------------------------ рендер
+function resize() {
+  const w = stage.clientWidth;
+  const h = stage.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+resize();
+
+const tmpScale = new THREE.Vector3();
+const clock = new THREE.Clock();
+
+// Сглаживание привязано ко времени, а не к кадрам: переход длится одинаково
+// и на 60 Гц, и на 144 Гц, и на слабой машине с просадками.
+function smooth(rate, dt) {
+  return 1 - Math.exp(-rate * dt);
+}
+
+function tick() {
+  requestAnimationFrame(tick);
+
+  const dt = Math.min(clock.getDelta(), 0.1);
+  const k = smooth(9, dt);
+
+  chair.fabric.color.lerp(target.fabric, k);
+  chair.frame.color.lerp(target.frame, k);
+  chair.pillowMat.color.lerp(target.pillow, k);
+  chair.frame.metalness += (target.metalness - chair.frame.metalness) * k;
+  chair.frame.roughness += (target.roughness - chair.frame.roughness) * k;
+
+  chair.pillowMat.opacity += (target.opacity - chair.pillowMat.opacity) * smooth(11, dt);
+  if (chair.pillowMat.opacity < 0.01 && target.opacity === 0) chair.pillow.visible = false;
+  chair.pillow.scale.setScalar(0.62 + chair.pillowMat.opacity * 0.38);
+
+  tmpScale.setScalar(target.scale);
+  chair.root.scale.lerp(tmpScale, smooth(8, dt));
+
+  if (Math.abs(shownPrice - target.price) > 1) {
+    shownPrice += (target.price - shownPrice) * smooth(10, dt);
+    els.price.textContent = formatPrice(shownPrice);
+  } else if (shownPrice !== target.price) {
+    shownPrice = target.price;
+    els.price.textContent = formatPrice(shownPrice);
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+tick();
+
+document.body.classList.add('is-ready');
+</script>
+</body>
+</html>
