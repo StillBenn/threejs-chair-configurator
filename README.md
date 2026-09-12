@@ -1,43 +1,46 @@
-# Кресло NORD — 3D-конфигуратор
+# NORD armchair — 3D product configurator
 
-Интерактивный конфигуратор мебели на Three.js / WebGL. Клиент выбирает ткань,
-каркас и размер — модель и цена пересчитываются в реальном времени.
+An interactive furniture configurator built with Three.js / WebGL. The
+customer picks the upholstery, the frame and the size; the model and the
+price update in real time.
 
-**Демо-проект для портфолио.** Товар и цены вымышленные.
+**A portfolio demo.** The product, the brand and the prices are invented.
 
-## Что внутри
+**Live:** https://larisel.com/threejs-chair-configurator/
+· English (default) · Türkçe · Русский — or link a language directly with
+`?lang=tr`, `?lang=ru`.
 
-- **Модель собирается процедурно в коде** — внешних `.glb` / `.fbx` файлов нет,
-  страница открывается мгновенно и весит меньше 30 КБ (без учёта библиотеки).
-- **PBR-материалы + мягкие тени**, окружение через `RoomEnvironment` — без HDRI-файлов.
-- **Пересчёт цены на лету**, анимированный счётчик.
-- **Снимок конфигурации** — кнопка сохраняет PNG выбранной комплектации.
-- **Адаптивность** — на телефоне сцена сверху, параметры и цена снизу.
-- **Плавность привязана ко времени, а не к кадрам** — переход выглядит одинаково
-  и на 60 Гц, и на 144 Гц, и на слабом ноутбуке.
+## What is inside
 
-## Запуск
+- **The model is built in code** — no external `.glb` / `.fbx` files, so the
+  page opens instantly and weighs under 30 KB excluding the library.
+- **PBR materials and soft shadows**, environment from `RoomEnvironment`, so
+  there is no HDRI file to download either.
+- **Live price**, with an animated counter.
+- **Snapshot** — one button saves a PNG of the configuration on screen.
+- **Three languages**, English by default; the choice is remembered, and a
+  `?lang=` link wins over it.
+- **Responsive** — on a phone the stage takes the top of the screen and the
+  options and price sit below it, with the price bar pinned.
+- **Smoothing is tied to time, not to frames** — a transition takes the same
+  wall-clock time at 60 Hz, at 144 Hz, and on a laptop dropping frames.
 
-**Двойной клик по `index.html`** — и всё. Страница самодостаточная: скрипт
-встроен прямо в неё, снаружи подтягивается только библиотека Three.js с CDN.
+## Decisions worth knowing
 
-Локальный сервер не нужен, но если хочется — `start.bat` поднимет его
-на <http://127.0.0.1:8123/>.
+- **XL changes the proportions, not the overall scale.** In an empty scene a
+  uniform enlargement is indistinguishable from the camera moving closer.
+- **One file.** All of the JavaScript lives in `index.html`: ES modules are
+  blocked by CORS over `file://`, so a separate `js/` folder stopped the page
+  from opening on a double-click. One source of truth instead of two.
+- **Names live on the catalogue item, not in a parallel list** — a colour and
+  its three names cannot drift apart if they are one object.
+- **Fonts are self-hosted and split by script.** The Cyrillic slice only
+  downloads when the page is switched to Russian.
 
-## Структура
+## Running it locally
 
+Open `index.html`, or serve the folder:
+
+```bash
+python -m http.server 8000
 ```
-index.html          разметка, стили-ссылка и весь код сцены
-css/style.css       оформление, адаптивность
-preview/            рендеры трёх комплектаций
-```
-
-## Как поменять товар
-
-Весь каталог — в начале `<script>` в `index.html`, блок «КАТАЛОГ И ЦЕНЫ»:
-цвета тканей, материалы каркаса, размеры, базовая цена и надбавки.
-Добавление нового цвета — одна строка, интерфейс и пересчёт цены подхватят её сами.
-
-## Стек
-
-Three.js 0.160 (CDN, importmap) · WebGL · ES-модули · CSS Grid · Manrope

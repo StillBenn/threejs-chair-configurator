@@ -1,14 +1,21 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Кресло NORD — 3D-конфигуратор</title>
-<meta name="description" content="Интерактивный 3D-конфигуратор мебели на Three.js: выбор ткани, каркаса и размера с пересчётом цены в реальном времени.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=2">
+<title>NORD armchair — 3D product configurator</title>
+<meta name="description" content="An interactive furniture configurator built with Three.js: choose the upholstery, the frame and the size, and watch the price recalculate in real time.">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="NORD armchair — 3D product configurator">
+<meta property="og:description" content="Build the chair for your room in real-time 3D. Upholstery, frame, size — live price.">
+
+<meta name="theme-color" content="#ece7de">
+
+<link rel="preload" href="fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/style.css?v=3">
+
 <script type="importmap">
 {
   "imports": {
@@ -26,20 +33,35 @@
     <canvas id="scene"></canvas>
 
     <div class="stage-top">
-      <span class="badge">Демо-проект</span>
-      <span class="hint">Зажмите и потяните, чтобы повернуть</span>
+      <div class="mark">
+        <span class="mark__name">NORD</span>
+        <span class="mark__sub" data-t="badge"></span>
+      </div>
+
+      <div class="lang" role="group" aria-label="Language">
+        <button class="lang__btn" type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button class="lang__btn" type="button" data-lang="tr" aria-pressed="false">TR</button>
+        <button class="lang__btn" type="button" data-lang="ru" aria-pressed="false">RU</button>
+      </div>
     </div>
 
     <div class="stage-bottom">
-      <p id="dims" class="dims">Ш 78 × Г 82 × В 74 см</p>
+      <div class="stage-bottom__left">
+        <p id="dims" class="chip chip--mono"></p>
+        <p class="hint">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 12a8.5 8.5 0 1 1-2.49-6.01M20.5 3.5v4.2h-4.2"/></svg>
+          <span data-t="hint"></span>
+        </p>
+      </div>
+
       <div class="tools">
-        <button type="button" id="reset" class="tool" title="Сбросить вид">
+        <button type="button" id="reset" class="tool">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
-          <span>Сбросить вид</span>
+          <span data-t="reset"></span>
         </button>
-        <button type="button" id="snapshot" class="tool" title="Сохранить изображение">
+        <button type="button" id="snapshot" class="tool">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.4"/></svg>
-          <span>Снимок</span>
+          <span data-t="snapshot"></span>
         </button>
       </div>
     </div>
@@ -50,52 +72,53 @@
   <aside class="panel">
 
     <header class="panel-head">
-      <p class="eyebrow">3D-конфигуратор товара</p>
-      <h1>Кресло <em>NORD</em></h1>
-      <p class="lede">Соберите кресло под свой интерьер — модель и цена меняются сразу.</p>
+      <p class="eyebrow" data-t="eyebrow"></p>
+      <h1 data-t="h1"></h1>
+      <p class="lede" data-t="lede"></p>
     </header>
 
     <div class="panel-body">
 
       <section class="group">
         <div class="group-head">
-          <h2>Ткань</h2>
-          <span id="v-fabric" class="group-value">Песочный</span>
+          <h2 data-t="g.fabric"></h2>
+          <span id="v-fabric" class="group-value"></span>
         </div>
         <div id="fabrics" class="swatches"></div>
       </section>
 
       <section class="group">
         <div class="group-head">
-          <h2>Каркас</h2>
-          <span id="v-frame" class="group-value">Дуб</span>
+          <h2 data-t="g.frame"></h2>
+          <span id="v-frame" class="group-value"></span>
         </div>
         <div id="frames" class="swatches"></div>
       </section>
 
       <section class="group">
         <div class="group-head">
-          <h2>Размер</h2>
-          <span id="v-size" class="group-value">Стандарт</span>
+          <h2 data-t="g.size"></h2>
+          <span id="v-size" class="group-value"></span>
         </div>
         <div id="sizes" class="pills"></div>
       </section>
 
       <section class="group">
         <div class="group-head">
-          <h2>Дополнительно</h2>
+          <h2 data-t="g.extras"></h2>
         </div>
+
         <label class="check">
           <input type="checkbox" id="pillow">
           <span class="check-box" aria-hidden="true"></span>
-          <span class="check-text">Декоративная подушка</span>
-          <span class="check-price">+2 900 ₽</span>
+          <span class="check-text" data-t="pillow"></span>
+          <span class="check-price" id="pillow-price"></span>
         </label>
 
         <div id="pillow-options" class="pillow-options" hidden>
           <div class="group-head">
-            <h2>Ткань подушки</h2>
-            <span id="v-pillow" class="group-value">Терракота</span>
+            <h2 data-t="g.cushion"></h2>
+            <span id="v-pillow" class="group-value"></span>
           </div>
           <div id="pillow-fabrics" class="swatches"></div>
         </div>
@@ -105,11 +128,11 @@
 
     <footer class="panel-foot">
       <div class="price">
-        <span class="price-label">Итого</span>
-        <strong id="price">42 900 ₽</strong>
-        <span id="lead" class="price-note">Срок изготовления 14 дней</span>
+        <span class="price-label" data-t="total"></span>
+        <strong id="price"></strong>
+        <span id="lead" class="price-note"></span>
       </div>
-      <button type="button" id="order" class="cta">Заказать</button>
+      <button type="button" id="order" class="cta" data-t="cta"></button>
     </footer>
 
   </aside>
@@ -123,37 +146,146 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 /* ══════════════════════════════════════════════════════════════════════════
-   КАТАЛОГ И ЦЕНЫ — правится здесь
-   ══════════════════════════════════════════════════════════════════════════ */
-// Каталог опций и цены. Меняется только этот файл — сцена подстроится сама.
+   LANGUAGE
+   ══════════════════════════════════════════════════════════════════════════
+   English is the source and the default: the page is a portfolio piece for a
+   global audience, and the first visit has to be readable by anyone. Turkish
+   and Russian are a click away and the choice is remembered.
+
+   Keys rather than the text-node swapping used elsewhere in the portfolio,
+   because most of the visible strings here are produced in JS — swatch
+   names, dimensions, the price, the toast. There is nothing in the HTML to
+   match against until the script has run.                                  */
+
+const LANGS = ['en', 'tr', 'ru'];
+const LOCALE = { en: 'en-US', tr: 'tr-TR', ru: 'ru-RU' };
+const STORE = 'nord-lang';
+
+const T = {
+  en: {
+    title: 'NORD armchair — 3D product configurator',
+    desc: 'An interactive furniture configurator built with Three.js: choose the upholstery, the frame and the size, and watch the price recalculate in real time.',
+    badge: 'Demo project',
+    hint: 'Drag to turn it',
+    reset: 'Reset view',
+    snapshot: 'Snapshot',
+    eyebrow: '3D product configurator',
+    h1: 'NORD armchair',
+    lede: 'Build the chair for your own room — the model and the price change as you go.',
+    'g.fabric': 'Upholstery',
+    'g.frame': 'Frame',
+    'g.size': 'Size',
+    'g.extras': 'Extras',
+    'g.cushion': 'Cushion fabric',
+    pillow: 'Scatter cushion',
+    total: 'Total',
+    lead: 'Made to order · %d days',
+    cta: 'Request this build',
+    saved: 'Image saved'
+  },
+  tr: {
+    title: 'NORD koltuk — 3B ürün yapılandırıcı',
+    desc: 'Three.js ile yazılmış interaktif mobilya yapılandırıcı: kumaşı, gövdeyi ve ölçüyü seçin, fiyat anında yeniden hesaplansın.',
+    badge: 'Demo proje',
+    hint: 'Döndürmek için sürükleyin',
+    reset: 'Görünümü sıfırla',
+    snapshot: 'Görüntü al',
+    eyebrow: '3B ürün yapılandırıcı',
+    h1: 'NORD koltuk',
+    lede: 'Koltuğu kendi odanıza göre kurun — model ve fiyat anında değişir.',
+    'g.fabric': 'Kumaş',
+    'g.frame': 'Gövde',
+    'g.size': 'Ölçü',
+    'g.extras': 'Ek seçenekler',
+    'g.cushion': 'Yastık kumaşı',
+    pillow: 'Dekoratif yastık',
+    total: 'Toplam',
+    lead: 'Siparişe özel üretim · %d gün',
+    cta: 'Bu yapılandırmayı iste',
+    saved: 'Görüntü kaydedildi'
+  },
+  ru: {
+    title: 'Кресло NORD — 3D-конфигуратор',
+    desc: 'Интерактивный 3D-конфигуратор мебели на Three.js: выбор ткани, каркаса и размера с пересчётом цены в реальном времени.',
+    badge: 'Демо-проект',
+    hint: 'Зажмите и потяните',
+    reset: 'Сбросить вид',
+    snapshot: 'Снимок',
+    eyebrow: '3D-конфигуратор товара',
+    h1: 'Кресло NORD',
+    lede: 'Соберите кресло под свой интерьер — модель и цена меняются сразу.',
+    'g.fabric': 'Ткань',
+    'g.frame': 'Каркас',
+    'g.size': 'Размер',
+    'g.extras': 'Дополнительно',
+    'g.cushion': 'Ткань подушки',
+    pillow: 'Декоративная подушка',
+    total: 'Итого',
+    lead: 'Срок изготовления · %d дней',
+    cta: 'Запросить эту сборку',
+    saved: 'Изображение сохранено'
+  }
+};
+
+let lang = 'en';
+try {
+  const saved = localStorage.getItem(STORE);
+  if (LANGS.indexOf(saved) !== -1) lang = saved;
+} catch (e) { /* private mode: English it is */ }
+
+/* ?lang=tr wins over the remembered choice, so a link can be sent in the
+   language the recipient reads. */
+const asked = new URLSearchParams(location.search).get('lang');
+if (LANGS.indexOf(asked) !== -1) lang = asked;
+
+const t = (key) => T[lang][key];
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CATALOGUE AND PRICES — edit here
+   ══════════════════════════════════════════════════════════════════════════
+   Names are per language and live on the item, not in a parallel list: a
+   colour and its three names can never drift apart if they are one object.
+   Prices are in roubles because the brand is a Russian demo; only the
+   grouping follows the reader's locale.                                    */
 
 const PRICE_BASE = 42900;
-const LEAD_TIME = 14; // дней
+const LEAD_TIME = 14;   // days
 
 const FABRICS = [
-  { id: 'sand',       name: 'Песочный',   hex: '#d8c3a5', price: 0 },
-  { id: 'cream',      name: 'Сливочный',  hex: '#e9e2d6', price: 0 },
-  { id: 'graphite',   name: 'Графит',     hex: '#3c4045', price: 2400 },
-  { id: 'olive',      name: 'Олива',      hex: '#5f6b4a', price: 2400 },
-  { id: 'terracotta', name: 'Терракота',  hex: '#a8553c', price: 3200 },
-  { id: 'indigo',     name: 'Индиго',     hex: '#2f3f5c', price: 3200 },
+  { id: 'sand',       hex: '#d8c3a5', price: 0,    name: { en: 'Sand',       tr: 'Kum',       ru: 'Песочный' } },
+  { id: 'cream',      hex: '#e9e2d6', price: 0,    name: { en: 'Cream',      tr: 'Krem',      ru: 'Сливочный' } },
+  { id: 'graphite',   hex: '#3c4045', price: 2400, name: { en: 'Graphite',   tr: 'Grafit',    ru: 'Графит' } },
+  { id: 'olive',      hex: '#5f6b4a', price: 2400, name: { en: 'Olive',      tr: 'Zeytin',    ru: 'Олива' } },
+  { id: 'terracotta', hex: '#a8553c', price: 3200, name: { en: 'Terracotta', tr: 'Terakota',  ru: 'Терракота' } },
+  { id: 'indigo',     hex: '#2f3f5c', price: 3200, name: { en: 'Indigo',     tr: 'İndigo',    ru: 'Индиго' } },
 ];
 
 const FRAMES = [
-  { id: 'oak',    name: 'Дуб',           hex: '#b98b52', metalness: 0.00, roughness: 0.58, price: 0 },
-  { id: 'walnut', name: 'Орех',          hex: '#5b3a24', metalness: 0.00, roughness: 0.50, price: 3600 },
-  { id: 'black',  name: 'Чёрный металл', hex: '#2a2c30', metalness: 0.70, roughness: 0.40, price: 5200 },
-  { id: 'brass',  name: 'Латунь',        hex: '#d4af37', metalness: 0.88, roughness: 0.30, price: 8900 },
+  { id: 'oak',    hex: '#b98b52', metalness: 0.00, roughness: 0.58, price: 0,
+    name: { en: 'Oak',         tr: 'Meşe',        ru: 'Дуб' } },
+  { id: 'walnut', hex: '#5b3a24', metalness: 0.00, roughness: 0.50, price: 3600,
+    name: { en: 'Walnut',      tr: 'Ceviz',       ru: 'Орех' } },
+  { id: 'black',  hex: '#2a2c30', metalness: 0.70, roughness: 0.40, price: 5200,
+    name: { en: 'Black steel', tr: 'Siyah metal', ru: 'Чёрный металл' } },
+  { id: 'brass',  hex: '#d4af37', metalness: 0.88, roughness: 0.30, price: 8900,
+    name: { en: 'Brass',       tr: 'Pirinç',      ru: 'Латунь' } },
 ];
 
-// XL меняет пропорции, а не масштаб целиком: кресло становится заметно шире.
-// Равномерное увеличение в пустой сцене неотличимо от приближения камеры.
+/* XL changes the PROPORTIONS, not the overall scale: the chair gets visibly
+   wider. In an empty scene a uniform enlargement is indistinguishable from
+   the camera moving closer. */
 const SIZES = [
-  { id: 'std', name: 'Стандарт', dims: 'Ш 78 × Г 82 × В 74 см', scale: { x: 1.00, y: 1.00, z: 1.00 }, price: 0 },
-  { id: 'xl',  name: 'XL',       dims: 'Ш 92 × Г 88 × В 78 см', scale: { x: 1.18, y: 1.05, z: 1.07 }, price: 7400 },
+  { id: 'std', scale: { x: 1.00, y: 1.00, z: 1.00 }, price: 0,
+    name: { en: 'Standard', tr: 'Standart', ru: 'Стандарт' },
+    dims: { en: 'W 78 × D 82 × H 74 cm', tr: 'G 78 × D 82 × Y 74 cm', ru: 'Ш 78 × Г 82 × В 74 см' } },
+  { id: 'xl',  scale: { x: 1.18, y: 1.05, z: 1.07 }, price: 7400,
+    name: { en: 'XL', tr: 'XL', ru: 'XL' },
+    dims: { en: 'W 92 × D 88 × H 78 cm', tr: 'G 92 × D 88 × Y 78 cm', ru: 'Ш 92 × Г 88 × В 78 см' } },
 ];
 
-const PILLOW = { id: 'pillow', name: 'Декоративная подушка', price: 2900 };
+const PILLOW = { price: 2900 };
+
+const nameOf = (item) => item.name[lang];
 
 function totalPrice(state) {
   return PRICE_BASE
@@ -164,22 +296,21 @@ function totalPrice(state) {
 }
 
 function formatPrice(value) {
-  return Math.round(value).toLocaleString('ru-RU') + ' ₽';
+  return new Intl.NumberFormat(LOCALE[lang]).format(Math.round(value)) + ' ₽';
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   МОДЕЛЬ КРЕСЛА
-   ══════════════════════════════════════════════════════════════════════════ */
-// Кресло собирается процедурно: внешних 3D-файлов нет, страница грузится мгновенно.
-// Все размеры в метрах. Посадочная высота 46 см, общая высота ~78 см.
+   THE CHAIR
+   ══════════════════════════════════════════════════════════════════════════
+   Built procedurally: no external 3D files, so the page opens instantly.
+   All dimensions in metres. Seat height 46 cm, overall height ~78 cm.      */
 
-const W = 0.74;         // ширина
-const D = 0.72;         // глубина
+const W = 0.74;         // width
+const D = 0.72;         // depth
 const LEG_H = 0.30;
-const RAIL_Y = 0.315;   // царга под подушкой
-const SEAT_Y = 0.400;   // центр подушки
+const RAIL_Y = 0.315;   // rail under the seat cushion
+const SEAT_Y = 0.400;   // centre of the seat cushion
 const SEAT_H = 0.130;
-const SEAT_TOP = SEAT_Y + SEAT_H / 2;
 const ARM_Y = 0.625;
 
 function shadowed(mesh) {
@@ -219,7 +350,7 @@ function buildChair() {
     opacity: 0,
   });
 
-  // --- царга: деревянное основание под подушкой ----------------------------
+  // --- rail: the wooden base under the cushion -----------------------------
   const rail = shadowed(new THREE.Mesh(
     new RoundedBoxGeometry(W + 0.02, 0.055, D + 0.02, 4, 0.018),
     frame
@@ -227,7 +358,7 @@ function buildChair() {
   rail.position.y = RAIL_Y;
   root.add(rail);
 
-  // --- подушка сиденья -----------------------------------------------------
+  // --- seat cushion --------------------------------------------------------
   const seat = shadowed(new THREE.Mesh(
     new RoundedBoxGeometry(W - 0.02, SEAT_H, D - 0.03, 7, 0.05),
     fabric
@@ -235,7 +366,7 @@ function buildChair() {
   seat.position.y = SEAT_Y;
   root.add(seat);
 
-  // --- спинка: утоплена в подушку, наклон ~11° -----------------------------
+  // --- back: sunk into the cushion, raked ~11° ------------------------------
   const backPivot = new THREE.Group();
   backPivot.position.set(0, SEAT_Y - 0.02, -D / 2 + 0.10);
   backPivot.rotation.x = -0.20;
@@ -247,7 +378,7 @@ function buildChair() {
   backPivot.add(back);
   root.add(backPivot);
 
-  // --- подлокотники: мягкая накладка на деревянных стойках ------------------
+  // --- arms: a soft pad on wooden posts -------------------------------------
   const postGeo = new THREE.CylinderGeometry(0.023, 0.021, ARM_Y - RAIL_Y, 16);
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
@@ -268,9 +399,8 @@ function buildChair() {
     root.add(pad);
   }
 
-  // --- ножки: конус, лёгкий развал наружу ----------------------------------
+  // --- legs: tapered, splayed slightly outwards -----------------------------
   const legGeo = new THREE.CylinderGeometry(0.028, 0.016, LEG_H, 20);
-  const legs = [];
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
       const leg = shadowed(new THREE.Mesh(legGeo, frame));
@@ -278,13 +408,12 @@ function buildChair() {
       leg.rotation.z = -sx * 0.11;
       leg.rotation.x = sz * 0.10;
       root.add(leg);
-      legs.push(leg);
     }
   }
 
-  // --- декоративная подушка ------------------------------------------------
-  // Подушка — ребёнок спинки: наследует её наклон и всегда стоит правильно,
-  // как прислонённая, а не лежит плашмя посреди сиденья.
+  // --- scatter cushion ------------------------------------------------------
+  // A child of the back, so it inherits the rake and always sits propped
+  // against it rather than lying flat in the middle of the seat.
   const pillow = shadowed(new THREE.Mesh(
     new RoundedBoxGeometry(0.34, 0.115, 0.34, 7, 0.052),
     pillowMat
@@ -294,16 +423,15 @@ function buildChair() {
   pillow.visible = false;
   backPivot.add(pillow);
 
-  return { root, fabric, frame, pillowMat, pillow, seat, back, legs, SEAT_TOP };
+  return { root, fabric, frame, pillowMat, pillow };
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   СЦЕНА, СВЕТ, УПРАВЛЕНИЕ
+   SCENE, LIGHT, CONTROLS
    ══════════════════════════════════════════════════════════════════════════ */
 const canvas = document.getElementById('scene');
 const stage = document.getElementById('stage');
 
-// ---------------------------------------------------------------- рендерер
 const renderer = new THREE.WebGLRenderer({
   canvas, antialias: true, alpha: true, preserveDrawingBuffer: true
 });
@@ -330,9 +458,11 @@ controls.minPolarAngle = 0.35;
 controls.maxPolarAngle = 1.50;
 controls.autoRotate = true;
 controls.autoRotateSpeed = 0.9;
-controls.addEventListener('start', () => { controls.autoRotate = false; });
+controls.addEventListener('start', () => {
+  controls.autoRotate = false;
+  document.body.classList.add('is-turned');   // the prompt has been followed
+});
 
-// ------------------------------------------------------------------- свет
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
@@ -355,7 +485,6 @@ const rim = new THREE.DirectionalLight(0xeef2ff, 0.45);
 rim.position.set(-3, 2.2, -2.4);
 scene.add(rim);
 
-// -------------------------------------------------------------------- пол
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(14, 14),
   new THREE.ShadowMaterial({ opacity: 0.30 })
@@ -364,12 +493,14 @@ ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// ----------------------------------------------------------------- кресло
 const chair = buildChair();
 scene.add(chair.root);
 
-// --------------------------------------------------------------- состояние
-const state = { fabric: FABRICS[0], frame: FRAMES[0], size: SIZES[0], pillow: false, pillowFabric: FABRICS[4] };
+/* ── state ─────────────────────────────────────────────────────────────── */
+const state = {
+  fabric: FABRICS[0], frame: FRAMES[0], size: SIZES[0],
+  pillow: false, pillowFabric: FABRICS[4]
+};
 
 const target = {
   fabric: new THREE.Color(FABRICS[0].hex),
@@ -386,21 +517,23 @@ let shownPrice = target.price;
 chair.fabric.color.copy(target.fabric);
 chair.frame.color.copy(target.frame);
 
-// --------------------------------------------------------------- интерфейс
+/* ── interface ─────────────────────────────────────────────────────────── */
 const els = {
   fabrics: document.getElementById('fabrics'),
   frames: document.getElementById('frames'),
   sizes: document.getElementById('sizes'),
   pillow: document.getElementById('pillow'),
+  pillowPrice: document.getElementById('pillow-price'),
   vFabric: document.getElementById('v-fabric'),
   vFrame: document.getElementById('v-frame'),
   vSize: document.getElementById('v-size'),
+  vPillow: document.getElementById('v-pillow'),
   price: document.getElementById('price'),
   dims: document.getElementById('dims'),
   lead: document.getElementById('lead'),
   toast: document.getElementById('toast'),
   pillowFabrics: document.getElementById('pillow-fabrics'),
-  vPillow: document.getElementById('v-pillow'),
+  pillowOptions: document.getElementById('pillow-options'),
 };
 
 function makeSwatch(item, kind, isActive) {
@@ -408,14 +541,26 @@ function makeSwatch(item, kind, isActive) {
   b.type = 'button';
   b.className = 'swatch' + (isActive ? ' is-active' : '');
   b.dataset.id = item.id;
-  b.setAttribute('aria-label', item.name);
-  b.title = item.price ? item.name + ' · +' + formatPrice(item.price) : item.name;
   const dot = document.createElement('span');
   dot.className = 'swatch-dot';
-  dot.style.background = item.hex;
+  b.style.background = item.hex;
   if (kind === 'frame' && item.metalness > 0.5) dot.classList.add('is-metal');
   b.appendChild(dot);
   return b;
+}
+
+/* The swatch's own label is written by the language pass, not at build time,
+   so switching language does not have to rebuild the rows. */
+function labelSwatches(container, items) {
+  const buttons = container.querySelectorAll('.swatch');
+  items.forEach((item, i) => {
+    const b = buttons[i];
+    if (!b) return;
+    const extra = item.price ? ' · +' + formatPrice(item.price) : '';
+    b.dataset.name = nameOf(item) + extra;
+    b.setAttribute('aria-label', nameOf(item) + extra);
+    b.title = nameOf(item) + extra;
+  });
 }
 
 function buildSwatchRow(container, items, kind, onPick, activeIndex = 0) {
@@ -434,7 +579,6 @@ function buildSwatchRow(container, items, kind, onPick, activeIndex = 0) {
 buildSwatchRow(els.fabrics, FABRICS, 'fabric', item => {
   state.fabric = item;
   target.fabric.set(item.hex);
-  els.vFabric.textContent = item.name;
   refresh();
 });
 
@@ -443,46 +587,88 @@ buildSwatchRow(els.frames, FRAMES, 'frame', item => {
   target.frame.set(item.hex);
   target.metalness = item.metalness;
   target.roughness = item.roughness;
-  els.vFrame.textContent = item.name;
   refresh();
 });
+
+buildSwatchRow(els.pillowFabrics, FABRICS, 'fabric', item => {
+  state.pillowFabric = item;
+  target.pillow.set(item.hex);
+  refresh();
+}, 4);
 
 SIZES.forEach((item, i) => {
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'pill' + (i === 0 ? ' is-active' : '');
-  b.textContent = item.name;
+  b.dataset.id = item.id;
   b.addEventListener('click', () => {
     els.sizes.querySelectorAll('.pill').forEach(p => p.classList.remove('is-active'));
     b.classList.add('is-active');
     state.size = item;
     target.scale.set(item.scale.x, item.scale.y, item.scale.z);
-    els.vSize.textContent = item.name;
-    els.dims.textContent = item.dims;
     refresh();
   });
   els.sizes.appendChild(b);
 });
 
-const pillowOptions = document.getElementById('pillow-options');
-
-buildSwatchRow(els.pillowFabrics, FABRICS, 'fabric', item => {
-  state.pillowFabric = item;
-  target.pillow.set(item.hex);
-  els.vPillow.textContent = item.name;
-}, 4);
-
 els.pillow.addEventListener('change', () => {
   state.pillow = els.pillow.checked;
   target.opacity = state.pillow ? 1 : 0;
   if (state.pillow) chair.pillow.visible = true;
-  pillowOptions.hidden = !state.pillow;
+  els.pillowOptions.hidden = !state.pillow;
   refresh();
 });
 
+/* One function writes every piece of text that depends on either the state
+   or the language, so the two can never disagree. */
 function refresh() {
   target.price = totalPrice(state);
+
+  els.vFabric.textContent = nameOf(state.fabric);
+  els.vFrame.textContent = nameOf(state.frame);
+  els.vSize.textContent = nameOf(state.size);
+  els.vPillow.textContent = nameOf(state.pillowFabric);
+  els.dims.textContent = state.size.dims[lang];
+  els.lead.textContent = t('lead').replace('%d', LEAD_TIME);
+  els.pillowPrice.textContent = '+' + formatPrice(PILLOW.price);
+
+  labelSwatches(els.fabrics, FABRICS);
+  labelSwatches(els.frames, FRAMES);
+  labelSwatches(els.pillowFabrics, FABRICS);
+
+  els.sizes.querySelectorAll('.pill').forEach((b) => {
+    const item = SIZES.find(s => s.id === b.dataset.id);
+    if (item) b.textContent = nameOf(item);
+  });
 }
+
+function applyLang(next) {
+  lang = next;
+  document.documentElement.lang = next;
+  document.title = t('title');
+  const meta = document.querySelector('meta[name="description"]');
+  if (meta) meta.setAttribute('content', t('desc'));
+
+  document.querySelectorAll('[data-t]').forEach((el) => {
+    el.textContent = t(el.dataset.t);
+  });
+
+  document.querySelectorAll('[data-lang]').forEach((b) => {
+    b.setAttribute('aria-pressed', String(b.dataset.lang === next));
+  });
+
+  refresh();
+  /* The price is written by the animation loop, which only repaints when the
+     number is actually moving — a language change alters the formatting, not
+     the value, so it has to be written once by hand. */
+  els.price.textContent = formatPrice(shownPrice);
+
+  try { localStorage.setItem(STORE, next); } catch (e) { /* private mode */ }
+}
+
+document.querySelectorAll('[data-lang]').forEach((b) => {
+  b.addEventListener('click', () => applyLang(b.dataset.lang));
+});
 
 document.getElementById('reset').addEventListener('click', () => {
   controls.autoRotate = true;
@@ -493,14 +679,15 @@ document.getElementById('reset').addEventListener('click', () => {
 document.getElementById('snapshot').addEventListener('click', () => {
   renderer.render(scene, camera);
   const a = document.createElement('a');
-  a.download = 'kreslo-nord-' + state.fabric.id + '-' + state.frame.id + '.png';
+  a.download = 'nord-' + state.fabric.id + '-' + state.frame.id + '.png';
   a.href = canvas.toDataURL('image/png');
   a.click();
-  toast('Изображение сохранено');
+  toast(t('saved'));
 });
 
 document.getElementById('order').addEventListener('click', () => {
-  toast(state.size.name + ' · ' + state.fabric.name + ' · ' + state.frame.name + ' — ' + formatPrice(target.price));
+  toast([nameOf(state.size), nameOf(state.fabric), nameOf(state.frame)].join(' · ')
+        + ' — ' + formatPrice(target.price));
 });
 
 let toastTimer;
@@ -511,11 +698,11 @@ function toast(text) {
   toastTimer = setTimeout(() => els.toast.classList.remove('is-on'), 2800);
 }
 
-els.lead.textContent = 'Срок изготовления ' + LEAD_TIME + ' дней';
-els.dims.textContent = SIZES[0].dims;
-els.price.textContent = formatPrice(shownPrice);
+applyLang(lang);
 
-// ------------------------------------------------------------------ рендер
+/* ══════════════════════════════════════════════════════════════════════════
+   RENDER
+   ══════════════════════════════════════════════════════════════════════════ */
 function resize() {
   const w = stage.clientWidth;
   const h = stage.clientHeight;
@@ -525,12 +712,17 @@ function resize() {
   camera.updateProjectionMatrix();
 }
 addEventListener('resize', resize);
+/* The stage can change size without the window ever resizing — a stylesheet
+   arriving late, a mobile URL bar sliding away. Watching the element itself
+   is the only reliable signal. */
+if ('ResizeObserver' in window) new ResizeObserver(resize).observe(stage);
 resize();
 
 const clock = new THREE.Clock();
 
-// Сглаживание привязано ко времени, а не к кадрам: переход длится одинаково
-// и на 60 Гц, и на 144 Гц, и на слабой машине с просадками.
+/* Smoothing is tied to time, not to frames: the transition takes the same
+   wall-clock time at 60 Hz, at 144 Hz, and on a laptop that is dropping
+   frames. */
 function smooth(rate, dt) {
   return 1 - Math.exp(-rate * dt);
 }
