@@ -689,3 +689,15 @@ body.is-turned .hint { opacity: 0; }
    states a fact about the product, the other tells you what you can do to
    it. Stacked, not side by side, so neither is mistaken for the other. */
 .stage-bottom__left { display: grid; gap: 10px; justify-items: start; }
+
+/* --- Telefonda dokunma hedefleri -------------------------------------------
+   Olculdu (390px): dil butonlari 27px yuksekti, esik 44px. Gorunum sabit
+   kalsin diye yalnizca dokunma alani genisletiliyor. */
+@media (pointer: coarse) {
+  .lang__btn { position: relative; }
+  .lang__btn::before {
+    content: "";
+    position: absolute;
+    inset: -10px -8px;
+  }
+}
