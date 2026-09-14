@@ -245,29 +245,31 @@ const t = (key) => T[lang][key];
    ══════════════════════════════════════════════════════════════════════════
    Names are per language and live on the item, not in a parallel list: a
    colour and its three names can never drift apart if they are one object.
-   Prices are in roubles because the brand is a Russian demo; only the
+   Prices are in US dollars: the same demo goes to Turkish, Russian and
+   international clients, and one currency across every piece of work reads
+   as one studio. Only the
    grouping follows the reader's locale.                                    */
 
-const PRICE_BASE = 42900;
+const PRICE_BASE = 1290;
 const LEAD_TIME = 14;   // days
 
 const FABRICS = [
   { id: 'sand',       hex: '#d8c3a5', price: 0,    name: { en: 'Sand',       tr: 'Kum',       ru: 'Песочный' } },
   { id: 'cream',      hex: '#e9e2d6', price: 0,    name: { en: 'Cream',      tr: 'Krem',      ru: 'Сливочный' } },
-  { id: 'graphite',   hex: '#3c4045', price: 2400, name: { en: 'Graphite',   tr: 'Grafit',    ru: 'Графит' } },
-  { id: 'olive',      hex: '#5f6b4a', price: 2400, name: { en: 'Olive',      tr: 'Zeytin',    ru: 'Олива' } },
-  { id: 'terracotta', hex: '#a8553c', price: 3200, name: { en: 'Terracotta', tr: 'Terakota',  ru: 'Терракота' } },
-  { id: 'indigo',     hex: '#2f3f5c', price: 3200, name: { en: 'Indigo',     tr: 'İndigo',    ru: 'Индиго' } },
+  { id: 'graphite',   hex: '#3c4045', price: 70, name: { en: 'Graphite',   tr: 'Grafit',    ru: 'Графит' } },
+  { id: 'olive',      hex: '#5f6b4a', price: 70, name: { en: 'Olive',      tr: 'Zeytin',    ru: 'Олива' } },
+  { id: 'terracotta', hex: '#a8553c', price: 95, name: { en: 'Terracotta', tr: 'Terakota',  ru: 'Терракота' } },
+  { id: 'indigo',     hex: '#2f3f5c', price: 95, name: { en: 'Indigo',     tr: 'İndigo',    ru: 'Индиго' } },
 ];
 
 const FRAMES = [
   { id: 'oak',    hex: '#b98b52', metalness: 0.00, roughness: 0.58, price: 0,
     name: { en: 'Oak',         tr: 'Meşe',        ru: 'Дуб' } },
-  { id: 'walnut', hex: '#5b3a24', metalness: 0.00, roughness: 0.50, price: 3600,
+  { id: 'walnut', hex: '#5b3a24', metalness: 0.00, roughness: 0.50, price: 110,
     name: { en: 'Walnut',      tr: 'Ceviz',       ru: 'Орех' } },
-  { id: 'black',  hex: '#2a2c30', metalness: 0.70, roughness: 0.40, price: 5200,
+  { id: 'black',  hex: '#2a2c30', metalness: 0.70, roughness: 0.40, price: 160,
     name: { en: 'Black steel', tr: 'Siyah metal', ru: 'Чёрный металл' } },
-  { id: 'brass',  hex: '#d4af37', metalness: 0.88, roughness: 0.30, price: 8900,
+  { id: 'brass',  hex: '#d4af37', metalness: 0.88, roughness: 0.30, price: 280,
     name: { en: 'Brass',       tr: 'Pirinç',      ru: 'Латунь' } },
 ];
 
@@ -278,12 +280,12 @@ const SIZES = [
   { id: 'std', scale: { x: 1.00, y: 1.00, z: 1.00 }, price: 0,
     name: { en: 'Standard', tr: 'Standart', ru: 'Стандарт' },
     dims: { en: 'W 78 × D 82 × H 74 cm', tr: 'G 78 × D 82 × Y 74 cm', ru: 'Ш 78 × Г 82 × В 74 см' } },
-  { id: 'xl',  scale: { x: 1.18, y: 1.05, z: 1.07 }, price: 7400,
+  { id: 'xl',  scale: { x: 1.18, y: 1.05, z: 1.07 }, price: 230,
     name: { en: 'XL', tr: 'XL', ru: 'XL' },
     dims: { en: 'W 92 × D 88 × H 78 cm', tr: 'G 92 × D 88 × Y 78 cm', ru: 'Ш 92 × Г 88 × В 78 см' } },
 ];
 
-const PILLOW = { price: 2900 };
+const PILLOW = { price: 90 };
 
 const nameOf = (item) => item.name[lang];
 
@@ -296,7 +298,7 @@ function totalPrice(state) {
 }
 
 function formatPrice(value) {
-  return new Intl.NumberFormat(LOCALE[lang]).format(Math.round(value)) + ' ₽';
+  return '$' + new Intl.NumberFormat('en-US').format(Math.round(value));
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
